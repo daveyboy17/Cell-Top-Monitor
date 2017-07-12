@@ -1,0 +1,1 @@
+startup files for CooCox
