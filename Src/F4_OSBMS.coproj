@@ -124,11 +124,11 @@
     <File name="stm32_lib/inc/stm32f0xx_misc.h" path="stm32_lib/inc/stm32f0xx_misc.h" type="1"/>
     <File name="stm32_lib/src/stm32f0xx_misc.c" path="stm32_lib/src/stm32f0xx_misc.c" type="1"/>
     <File name="stm32_lib/src/stm32f0xx_tim.c" path="stm32_lib/src/stm32f0xx_tim.c" type="1"/>
-    <File name="stm32_lib/inc/stm32f0xx_adc.h" path="stm32_lib/inc/stm32f0xx_adc.h" type="1"/>
+    <File name="hardware.h" path="hardware.h" type="1"/>
     <File name="main.c" path="main.c" type="1"/>
     <File name="stm32_lib/src" path="" type="2"/>
-    <File name="hardware.h" path="hardware.h" type="1"/>
     <File name="stm32_lib/src/stm32f0xx_rcc.c" path="stm32_lib/src/stm32f0xx_rcc.c" type="1"/>
+    <File name="stm32_lib/inc/stm32f0xx_adc.h" path="stm32_lib/inc/stm32f0xx_adc.h" type="1"/>
     <File name="stm32_lib/src/stm32f0xx_iwdg.c" path="stm32_lib/src/stm32f0xx_iwdg.c" type="1"/>
   </Files>
 </Project>

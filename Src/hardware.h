@@ -7,7 +7,6 @@
 
 #define BOARD_VERSION			(2)		// Rev 2.x
 #define SW_VERSION				(3)		// Rev 3
-#define PRODUCT_ID				(1)
 
 // ADC ref is 2.5v, cell volt measure has a 2:1 divider so max should be very close to 5v.
 #define CELL_VOLT_MAX_INPUT		(5000)			// *CALIBRATION VALUE* set what ADC_MAX means as a cell voltage in mV

@@ -201,7 +201,11 @@ int main(void)
 		} // end of if comms tick
 
 		// turn off both LEDs
-		GPIO_WriteBit(ALARM_LED_PORT, ALARM_LED_PIN, 0);
+		// leave the ALARM LED on if overvoltage
+		if ((u8_alarm_state & ALRM_OVERVOLT) == 0)
+		{
+			GPIO_WriteBit(ALARM_LED_PORT, ALARM_LED_PIN, 0);
+		}
 		GPIO_WriteBit(HEART_LED_PORT, HEART_LED_PIN, 0);	// Heartbeat LED
 
 		// if load on or comms active, SLEEP instead of STOP.

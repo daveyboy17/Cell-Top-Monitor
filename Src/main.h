@@ -11,8 +11,8 @@
 #define MAIN_H_INCLUDED
 
 
-//#define BAUDRATE			(19200)
-#define BAUDRATE			(9600)							// hardware on early proto's couldn't hack it at 19200
+#define BAUDRATE			(19200)
+//#define BAUDRATE			(9600)							// hardware on early proto's couldn't hack it at 19200
 
 #define DYNAMIC_BALANCING	(1)								// 0 = Top balancing only, 1 = balance if > mean + 50mV.
 
