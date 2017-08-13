@@ -28,12 +28,12 @@
         <Option name="Library" value="Not use C Library"/>
         <LinkedLibraries/>
         <MemoryAreas debugInFlashNotRAM="1">
-          <Memory name="IROM1" type="ReadOnly" size="0x00004000" startValue="0x08000000"/>
+          <Memory name="IROM1" type="ReadOnly" size="0x00003C00" startValue="0x08000000"/>
           <Memory name="IRAM1" type="ReadWrite" size="0x00001000" startValue="0x20000000"/>
-          <Memory name="IROM2" type="ReadOnly" size="" startValue=""/>
+          <Memory name="IROM2" type="ReadOnly" size="0x00000400" startValue="0x08003C00"/>
           <Memory name="IRAM2" type="ReadWrite" size="" startValue=""/>
         </MemoryAreas>
-        <LocateLinkFile path="../../../coocox/coide/configuration/programdata/f4_osbms/arm-gcc-link.ld" type="0"/>
+        <LocateLinkFile path="../../configuration/programdata/f4_osbms/arm-gcc-link.ld" type="0"/>
       </Link>
       <Output>
         <Option name="OutputFileType" value="0"/>
@@ -124,11 +124,11 @@
     <File name="stm32_lib/inc/stm32f0xx_misc.h" path="stm32_lib/inc/stm32f0xx_misc.h" type="1"/>
     <File name="stm32_lib/src/stm32f0xx_misc.c" path="stm32_lib/src/stm32f0xx_misc.c" type="1"/>
     <File name="stm32_lib/src/stm32f0xx_tim.c" path="stm32_lib/src/stm32f0xx_tim.c" type="1"/>
-    <File name="hardware.h" path="hardware.h" type="1"/>
+    <File name="stm32_lib/src/stm32f0xx_rcc.c" path="stm32_lib/src/stm32f0xx_rcc.c" type="1"/>
     <File name="main.c" path="main.c" type="1"/>
     <File name="stm32_lib/src" path="" type="2"/>
-    <File name="stm32_lib/src/stm32f0xx_rcc.c" path="stm32_lib/src/stm32f0xx_rcc.c" type="1"/>
     <File name="stm32_lib/inc/stm32f0xx_adc.h" path="stm32_lib/inc/stm32f0xx_adc.h" type="1"/>
+    <File name="hardware.h" path="hardware.h" type="1"/>
     <File name="stm32_lib/src/stm32f0xx_iwdg.c" path="stm32_lib/src/stm32f0xx_iwdg.c" type="1"/>
   </Files>
 </Project>

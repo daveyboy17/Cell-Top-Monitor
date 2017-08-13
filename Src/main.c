@@ -72,7 +72,7 @@ static void			fv_show_LED(void);
 /************** Variables *********************************/
 volatile uint16_t	u16a_adc_buf[MAX_ADC_CHANS];
 uint16_t			u16_watchdog_word;
-uint16_t			u16_tick_cntr;
+uint16_t			u16_tick_cntr;							// ensure we don't get stuck in sleep mode.
 uint8_t				u8a_USART1_tx_buf[TX_BUFFER_SIZE];
 volatile uint16_t	u16_UART1_tx_wp;
 volatile uint8_t	u8a_USART1_rx_buf[RX_BUFFER_SIZE];
@@ -91,9 +91,12 @@ uint16_t			u16_mean_cell_mv;
 volatile uint16_t	u16_comms_intrvl_tmr;					// incremented every sys_tick, zeroed when we receive a chunk.
 uint8_t				u8_load_state;
 uint8_t				u8_alarm_state;
-uint8_t				u8_cell_number;
-uint8_t				u8_cell_counter;
+//uint8_t				u8_cell_number;
+//uint8_t				u8_cell_counter;
 uint8_t				u8_valid_header;						// set when a master message received, cleared when we on-send
+
+//const unsigned short __attribute__((section ("CALVARS"))) v_cal = CELL_VOLT_MAX_INPUT;
+const unsigned short __attribute__((section ("rom1"))) v_cal = CELL_VOLT_MAX_INPUT;
 
 
 /***********************************************************
@@ -133,8 +136,8 @@ int main(void)
 	// BattMan should set this
 	u16_mean_cell_mv				= 0;
 	u16_comms_intrvl_tmr			= 0;
-	u8_cell_number					= CELL_NUM_NOT_SET;			// default to a number that cannot be achieved
-	u8_cell_counter					= 0;
+//	u8_cell_number					= CELL_NUM_NOT_SET;			// default to a number that cannot be achieved
+//	u8_cell_counter					= 0;
 	u8_valid_header					= 0;
 
 	// flush the serial buffers.
@@ -162,7 +165,7 @@ int main(void)
 
 			if (0 != u8_sleep_not_stop)
 			{
-				++u16_tick_cntr;
+				++u16_tick_cntr;							// only count ticks when we're sleeping
 			}
 			else
 			{
@@ -172,7 +175,6 @@ int main(void)
 			if (u16_comms_intrvl_tmr >= AUTOSEND_SECONDS)	// u16_comms_intrvl_tmr is reset by fv_append_data()
 			{
 				u8_sleep_not_stop		= 1;
-//				u8_comms_tick_f			= 1;				// TODO: don't think we need this to be set here
 				u16_mean_cell_mv		= 0;				// no message from master so erase mean_mv
 
 				fv_append_data();							// this will also zero u16_comms_intrvl_tmr
@@ -187,6 +189,8 @@ int main(void)
 					&& (u8_comms_mode != COMMS_IDLE) )
 			{
 				u8_comms_mode			= COMMS_IDLE;
+				// 28 Jul 2017, Dave - added a rezero of the tick counter so it won't retrigger while the load is on.
+				u16_tick_cntr			= 0;
 			}
 
 			u8_sys_tick_f				= 0;
@@ -834,6 +838,7 @@ static void			fv_set_RTC(uint8_t u8_type)
 static void			fv_read_ADC(uint8_t u8_type)
 {
 	u16_cell_voltage			= fu16_scale_reading(u16a_adc_buf[CELL_VCELL_INDEX], CELL_VOLT_MAX_INPUT);
+//	u16_cell_voltage			= fu16_scale_reading(u16a_adc_buf[CELL_VCELL_INDEX], v_cal);	// TODO:
 
 	/** The high byte of u16_cell_voltage appears to be always zero regardless of the value it's been set to! **/
 
@@ -860,14 +865,15 @@ static void			fv_read_ADC(uint8_t u8_type)
 #endif	// DYNAMIC_BALANCING
 
 	// don't save power if we have the load on.
-	if (0 != u8_load_state)
-	{
-		u8_sleep_not_stop		= 1;
-	}
-	else if (u8_comms_mode == COMMS_IDLE)
-	{
-		u8_sleep_not_stop		= 0;
-	}
+	// 2 Aug 2017, Dave - removed sleeping during balancing as it interferes with comms.
+//	if (0 != u8_load_state)
+//	{
+//		u8_sleep_not_stop		= 1;
+//	}
+//	else if (u8_comms_mode == COMMS_IDLE)
+//	{
+//		u8_sleep_not_stop		= 0;
+//	}
 
 	// set the load output
 	GPIO_WriteBit(CELL_LOAD_PORT, CELL_LOAD_PIN, u8_load_state);
@@ -925,7 +931,6 @@ static void			fv_process_comms(void)
 		}
 
 		// check if a chunk of bytes received
-//		if ((u8_num_bytes % 6) == 0)
 		// 30 Jun 2017, Dave - changed check for chunk of bytes so it copes with extras.
 		if (u8_num_bytes >= 6)
 		{
@@ -936,18 +941,12 @@ static void			fv_process_comms(void)
 					// 3 Jul 2017, Dave -  added a test to ensure both pairs of bytes match
 					&& (u8a_buf[0] == u8a_buf[2])
 					&& (u8a_buf[1] == u8a_buf[3]) )
-//					&& ((u8a_buf[0] & 0x60) == 0) )			// the cell voltage can never get high enough to set these bits; (>8v)
 			{
 				u8_valid_header						= 1;
 
 				/*	master sends mean cell voltage so that cells can be balanced during charge. */
 				// 30 Jun 2017, Dave - corrected the mask bits for the high byte of u16_mean_cell_mv from master.
 				u16_mean_cell_mv					= (((u8a_buf[0] & 0x1F) << 8) + u8a_buf[1]);
-			}
-			else		// if it's not from the master, it must be from a previous cell.
-			{
-				// increment cell counter, used to determine what cell number we are.
-				++u8_cell_counter;
 			}
 
 			// copy the chunk to the tx buffer
@@ -968,6 +967,11 @@ static void			fv_process_comms(void)
 			u8_UART1_rx_wp							= 0;
 
 			u16_comms_intrvl_tmr					= 0;
+
+			// 2 Aug 2017, Dave - moved resetting the comms timer to after a block of 6 received.
+//			TIM_SetCounter(TIM14, 0);
+//			TIM_SetCompare1(TIM14, UART_SLEEP_MS);			// generate an interrupt in x ms
+//			TIM_Cmd(TIM14, ENABLE);
 		} // end of if a chunk received
 	} // end of if bytes to process
 } // end of fv_process_comms -------------------------------
@@ -1027,13 +1031,6 @@ static void			fv_append_data(void)
 	// clear the interval timer because we're sending data now.
 	u16_comms_intrvl_tmr					= 0;
 
-	// if cell number has not yet been set then do it now if the message stream was initiated by the master.
-	if ( (u8_cell_number == CELL_NUM_NOT_SET)
-			&& (0 != u8_valid_header) )
-	{
-		u8_cell_number						= (u8_cell_counter + 1);
-	}
-	u8_cell_counter							= 0;			// reset the cell counter ready for the next message stream.
 	u8_valid_header							= 0;
 } // end of fv_append_data ---------------------------------
 
@@ -1103,6 +1100,9 @@ void			USART1_IRQHandler(void)
 
 		// reset the timer to zero
 		TIM_SetCounter(TIM14, 0);
+		// 2 Aug 2017, Dave - moved resetting the comms timer back to after every byte received.
+		TIM_SetCompare1(TIM14, UART_SLEEP_MS);			// generate an interrupt in x ms
+		TIM_Cmd(TIM14, ENABLE);
 
 		u8_comms_tick_f						= 1;
 	} // end of if byte received
@@ -1123,7 +1123,7 @@ void			USART1_IRQHandler(void)
 		// end of transmitting so return to minimum power drain
 		TIM_Cmd(TIM14, DISABLE);
 		u16_UART1_tx_wp						= 0;
-		if (0 == u8_load_state)
+//		if (0 == u8_load_state)
 		{
 			u8_sleep_not_stop				= 0;			// we're done sleeping, can stop now
 		}
@@ -1211,9 +1211,10 @@ void			EXTI2_3_IRQHandler(void)
 		if (0 == u8_sleep_not_stop)
 		{
 			// set the timeout.
-			TIM_SetCounter(TIM14, 0);
-			TIM_SetCompare1(TIM14, UART_SLEEP_MS);			// generate an interrupt in x ms
-			TIM_Cmd(TIM14, ENABLE);
+			// 2 Aug 2017, Dave - moved resetting the comms timer to after a block of 6 received.
+//			TIM_SetCounter(TIM14, 0);
+//			TIM_SetCompare1(TIM14, UART_SLEEP_MS);			// generate an interrupt in x ms
+//			TIM_Cmd(TIM14, ENABLE);
 			u8_sleep_not_stop		= 1;
 			u8_comms_tick_f			= 1;
 		} // end of if we were stopped when this triggered
@@ -1232,26 +1233,23 @@ void			EXTI2_3_IRQHandler(void)
  **********************************************************/
 void			TIM14_IRQHandler(void)
 {
-//	if (u8_comms_mode == COMMS_RECEIVING)
+	// check if bytes to send.
+	if (0 != u16_UART1_tx_wp)
 	{
-		// check if bytes to send.
-		if (0 != u16_UART1_tx_wp)
-		{
-			// timed out after last byte received so transmit now.
-			fv_append_data();
+		// timed out after last byte received so transmit now.
+		fv_append_data();
 
-			// set up DMA transmit
-			fv_USART1_send(u16_UART1_tx_wp, &u8a_USART1_tx_buf[0]);
-		}
+		// set up DMA transmit
+		fv_USART1_send(u16_UART1_tx_wp, &u8a_USART1_tx_buf[0]);
+	}
 
-		// reset the receive and transmit buffer pointers.
-		u8_UART1_rx_rp				= 0;
-		u8_UART1_rx_wp				= 0;
-		u16_UART1_tx_wp				= 0;
+	// reset the receive and transmit buffer pointers.
+	u8_UART1_rx_rp				= 0;
+	u8_UART1_rx_wp				= 0;
+	u16_UART1_tx_wp				= 0;
 
-		TIM_Cmd(TIM14, DISABLE);
-		TIM_ClearITPendingBit(TIM14, TIM_IT_CC1);
-	} // end of if receiving
+	TIM_Cmd(TIM14, DISABLE);
+	TIM_ClearITPendingBit(TIM14, TIM_IT_CC1);
 } // end of TIM14_IRQHandler -------------------------------
 
 
